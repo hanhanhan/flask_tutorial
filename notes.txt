@@ -1,0 +1,10 @@
+Where is the documentation on flask_login.current_user? it's a werkzeug local -- but has more methods -- but methods aren't documented.
+
+Can't figure out where the packages are being installed either to look at source code :(
+
+validator Required is now DataRequired
+
+current_user.confirmed
+others need () after 
+
+when I saved a template name with dashes instead of underscores separating words "request_passord_reset.html" vss "request-passsword-reset.html"  -- would not render

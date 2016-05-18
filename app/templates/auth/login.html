@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Campfire Songbook - Login{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>Login</h1>
+</div>
+<div class="col-md-5">
+    {{ wtf.quick_form(form) }}
+<br>
+<h3>
+New user? 
+<a href="{{ url_for('auth.register') }}">Register Here</a> 
+</h3>
+<h3>
+<p>Forgot your password?</p>
+<a href="{{ url_for('auth.reset_password_request')}}">Get a password reset email.</a>
+</h3>
+</div>  
+{% endblock %}
