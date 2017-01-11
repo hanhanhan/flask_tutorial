@@ -52,16 +52,17 @@ def confirm(token):
     else:
         flash('The confirmation link is invalid or expired.')
         return redirect(url_for('main.index'))
-'''
+
 #need to exclude password reset
 @auth.before_app_request
 def before_request():
-    if current_user.is_authenticated() \
-            and not current_user.confirmed \
-            and request.endpoint[:5] != 'auth.' \
-            and request.endpoint != 'static':
-        return redirect(url_for('auth.unconfirmed'))
-'''
+    if current_user.is_authenticated:
+        #update user last_seen in db
+        current_user.ping()
+        if not current_user.confirmed and request.endpoint[:5] != 'auth.':
+            # and request.endpoint != 'static':
+            return redirect(url_for('auth.unconfirmed'))
+
 @auth.route('/unconfirmed')
 @login_required
 def unconfirmed():
