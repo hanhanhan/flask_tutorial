@@ -8,6 +8,7 @@ class Config:
     MAIL_SUBJECT_PREFIX = 'Campfire Songbook'
     MAIL_SENDER = 'Hanny <hannah.lazarus@gmail.com>'
     SONGBOOK_ADMIN = os.environ.get('SONGBOOK_ADMIN')
+    SONGBOOK_POSTS_PER_PAGE = 20
 
     #BOOTSTRAP
     #Playing with unminified version for customization

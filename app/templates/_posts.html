@@ -1,7 +1,7 @@
 <div>
-    {% if current_user.can(Permission.WRITE_ARTICLES) %}
+{#     {% if current_user.can(Permission.WRITE_ARTICLES) %}
         {{ wtf.quick_form(form) }}
-    {% endif %}
+    {% endif %} #}
 </div>
 <ul class="posts">
     {% for post in posts %}
@@ -20,8 +20,9 @@
                 </a>
             </div>
             <div class="post-body">
-                
+                {{ post.body }}
             </div>
         </li>
+        <br>
     {% endfor %}
 </ul>   

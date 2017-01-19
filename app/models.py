@@ -6,6 +6,10 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from datetime import datetime
 import hashlib
 
+# # database initialization: 
+# Role.insert_roles()
+# User.generate_fake()
+# Post.generate_fake()
 
 class Permission:
     """Flags for for roles permissions"""
@@ -20,6 +24,8 @@ class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
+    default = db.Column(db.Boolean, default=False, index=True)
+    permissions = db.Column(db.Integer)
     users = db.relationship('User', backref='role', lazy='dynamic')
 
     def __repr__(self):
@@ -55,15 +61,36 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique=True, index=True)
     username = db.Column(db.String(64), unique=True, index=True)
+    name = db.Column(db.String(64), unique=True, index=True)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text)
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.Boolean, default=False)
     avatar_hash = db.Column(db.String(32))
     posts = db.relationship('Post', backref='author', lazy='dynamic')
+    member_since = db.Column(db.DateTime, default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash_maker()
+        if self.role is None:
+            if self.email == current_app.config['SONGBOOK_ADMIN']:
+                self.role = Role.query.filter_by(permissions=0xff).first()
+            else:
+                self.role = Role.query.filter_by(default=True).first()
+
+        # super(User, self).__init__(**kwargs)
+        # if self.role is None:
+        #     if self.email == current_app.config['FLASKY_ADMIN']:
+        #         self.role = Role.query.filter_by(permissions=0xff).first()
+        #     if self.role is None:
+        #         self.role = Role.query.filter_by(default=True).first()
+        # if self.email is not None and self.avatar_hash is None:
+        #     self.avatar_hash = hashlib.md5(
+        #         self.email.encode('utf-8')).hexdigest()
 
     # update default to more attractive site based one :)
     def gravatar(self, size=100, default='identicon', rating='g'):
@@ -120,20 +147,6 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return '<Role %r>' % self.username
 
-    # __tablename__ = 'users'
-    # id = db.Column(db.Integer, primary_key=True)
-    # email = db.Column(db.String(64), unique=True, index=True)
-    # username = db.Column(db.String(64), unique=True, index=True)
-    # role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
-    # password_hash = db.Column(db.String(128))
-    # confirmed = db.Column(db.Boolean, default=False)
-    # name = db.Column(db.String(64))
-    # about_me = db.Column(db.Text)
-    # # utcnow passed as a function, invoked on use
-    # last_seen = db.Column(db.DateTime(), default = datetime.utcnow)
-    # member_since = db.Column(db.DateTime(), default = datetime.utcnow)
-    # avatar_hash = db.Column(db.String(32))
-
     def generate_confirmation_token(self, expiration=3600):
         s = Serializer(current_app.config[SECRET_KEY], expiration)
         return s.dumps({'confirm': self.id})
@@ -163,6 +176,32 @@ class User(UserMixin, db.Model):
         self.last_seen = datetime.utcnow
         db.session.add(self)
 
+    @staticmethod
+    def generate_fake(count=100):
+        from sqlalchemy.exc import IntegrityError
+        from random import seed
+        import forgery_py
+        import sys
+
+        seed()
+        for i in range(count):
+            username = forgery_py.name.first_name()
+            u = User(email=forgery_py.internet.email_address(username),
+                     username=username,
+                     password=forgery_py.lorem_ipsum.word(),
+                     name=username + " " + forgery_py.name.last_name(),
+                     location=forgery_py.address.city(),
+                     about_me=forgery_py.lorem_ipsum.sentences(4),
+                     member_since=forgery_py.date.date(past=True),
+                     )
+            db.session.add(u)
+            try:
+                db.session.commit()
+            # exception for non-unique data (not enough names in random generator)
+            except IntegrityError:
+                print(sys.exc_info()[0])
+                db.session.rollback()
+
 
 # no db.Model inheritance since nothing gets stored!
 class AnonymousUser(AnonymousUserMixin):
@@ -187,3 +226,16 @@ class Post(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     body = db.Column(db.Text)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    @staticmethod
+    def generate_fake(count=100):
+        from random import seed, randint
+        import forgery_py
+
+        user_count = User.query.count()
+        for i in range(count):
+            u = User.query.offset(randint(0, user_count - 1)).first()
+            p = Post(body=forgery_py.lorem_ipsum.sentences(randint(1,4)), 
+                     timestamp=forgery_py.date.date(True), author=u)
+            db.session.add(p)
+            db.session.commit()

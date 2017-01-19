@@ -1,11 +1,14 @@
-from flask import render_template, abort, url_for, redirect, flash
+from flask import render_template, abort, url_for, redirect, flash, request, current_app
 from flask_login import login_required, current_user
 from . import main
 from .forms import EditProfileForm, EditProfileAdminForm, PostForm
-from ..models import User, Role, Permission, Post, AnonymousUser
-from ..decorators import admin_required
 from .. import db
+from ..models import User, Role, Permission, Post #, AnonymousUser
+from ..decorators import admin_required
 #permission
+
+# @main.context_processor
+# def 
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
@@ -19,9 +22,18 @@ def index():
         # post = Post(body=form.body.data, author_id=current_user.get_id())
         db.session.add(post)
         return redirect(url_for('.index'))
-    posts = Post.query.order_by(Post.timestamp.desc()).all()
-    return render_template('index.html', posts=posts, form=form)
+    #posts = Post.query.order_by(Post.timestamp.desc()).all()
+    # page = requests.args.get('page', 1, type=int)
+    # pagination = Post.query.order_by(
+    #     Post.timestamp.desc()).
+    #     paginate(page, 
+    #         per_page=current_app.config['SONGBOOK_POSTS_PER_PAGE'], 
+    #         error_out=False)
+    # posts = pagination.items
 
+    # I added Permission -- not in tutorial. Not sure intended fix works as expected / what was intended
+    return render_template('index.html', form=form, Permission=Permission)
+    # return render_template('index.html', form=form)
 
 @main.route('/user/<username>')
 def user(username):
