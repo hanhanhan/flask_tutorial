@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
+{% import "_macros.html" as macros %}
 
 {% block page_content %}
 
@@ -19,5 +20,15 @@
 </div>
 
 {% include '_posts.html' %}
+
+{% if pagination %}
+    <div class="pagination">
+        {{ macros.pagination_widget(pagination, '.index') }}
+    </div>    
+{% endif %}
+
+{% block scripts %}
+    {{ pagedown.include_pagedown() }}
+{% endblock scripts %}
 
 {% endblock page_content %}

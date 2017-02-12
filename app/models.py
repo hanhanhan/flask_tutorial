@@ -69,8 +69,8 @@ class User(UserMixin, db.Model):
     confirmed = db.Column(db.Boolean, default=False)
     avatar_hash = db.Column(db.String(32))
     posts = db.relationship('Post', backref='author', lazy='dynamic')
-    member_since = db.Column(db.DateTime, default=datetime.utcnow)
-    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -148,7 +148,7 @@ class User(UserMixin, db.Model):
         return '<Role %r>' % self.username
 
     def generate_confirmation_token(self, expiration=3600):
-        s = Serializer(current_app.config[SECRET_KEY], expiration)
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
         return s.dumps({'confirm': self.id})
 
     def confirm(self, token):
@@ -173,7 +173,7 @@ class User(UserMixin, db.Model):
 
     # called each time a user request is received in auth/views
     def ping(self):
-        self.last_seen = datetime.utcnow
+        self.last_seen = datetime.utcnow()
         db.session.add(self)
 
     @staticmethod

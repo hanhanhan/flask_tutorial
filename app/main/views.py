@@ -7,8 +7,6 @@ from ..models import User, Role, Permission, Post #, AnonymousUser
 from ..decorators import admin_required
 #permission
 
-# @main.context_processor
-# def 
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
@@ -22,18 +20,16 @@ def index():
         # post = Post(body=form.body.data, author_id=current_user.get_id())
         db.session.add(post)
         return redirect(url_for('.index'))
-    #posts = Post.query.order_by(Post.timestamp.desc()).all()
-    # page = requests.args.get('page', 1, type=int)
-    # pagination = Post.query.order_by(
-    #     Post.timestamp.desc()).
-    #     paginate(page, 
-    #         per_page=current_app.config['SONGBOOK_POSTS_PER_PAGE'], 
-    #         error_out=False)
-    # posts = pagination.items
+    page = request.args.get('page', 1, type=int)
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+        page, per_page=current_app.config['SONGBOOK_POSTS_PER_PAGE'], error_out=False)
+    posts = pagination.items
+    return render_template('index.html', form=form, posts=posts, pagination=pagination)
 
-    # I added Permission -- not in tutorial. Not sure intended fix works as expected / what was intended
-    return render_template('index.html', form=form, Permission=Permission)
-    # return render_template('index.html', form=form)
+@main.route('/post/<int:id>')
+def post(id):
+    post = Post.query.get_or_404(id)
+    return render_template('post.html', posts=[post])
 
 @main.route('/user/<username>')
 def user(username):
@@ -43,6 +39,20 @@ def user(username):
     posts = user.posts.order_by(Post.timestamp.desc()).all()
     return render_template('user.html', user=user, posts=posts)
 
+@main.route('/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_post(id):
+    post = Post.query.get_or_404(id)
+    if current_user != post.author and not current_user.can(Permission.ADMINISTER):
+        abort(403)
+    form = PostForm()
+    if form.validate_on_submit():
+        post.body = form.body.data
+        db.session.add(post)
+        flash('The post has been updated.')
+        return redirect(url_for('post', id=post.id)) # not posts=[id]?
+    form.body.data = post.data
+    return render_template('edit_post.html', form=form)
 
 @main.route('/edit-profile', methods=['GET', 'POST'])
 @login_required

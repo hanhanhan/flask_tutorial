@@ -66,7 +66,7 @@ def before_request():
 @auth.route('/unconfirmed')
 @login_required
 def unconfirmed():
-    if current_user.is_anonymous() or current_user.confirmed:
+    if current_user.is_anonymous or current_user.confirmed:
         return redirect(url_for('main.index'))
     return render_template('auth/unconfirmed.html')
 
@@ -94,7 +94,7 @@ def reset_password_request():
             send_email(user.email, 'Password Reset',
                 'auth/email/reset_password_request.html', user=user, 
                 token=token, next=request.args.get('next'))
-            flash('A password reset link has been emailed. It expires after an hour')
+            flash('A password reset link has been emailed. It expires after an hour.')
             return redirect(url_for('main.index'))
         #Security risk?
         if user is None:
