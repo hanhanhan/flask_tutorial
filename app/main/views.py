@@ -4,7 +4,7 @@ from . import main
 from .forms import EditProfileForm, EditProfileAdminForm, PostForm
 from .. import db
 from ..models import User, Role, Permission, Post #, AnonymousUser
-from ..decorators import admin_required
+from ..decorators import admin_required, permission_required
 #permission
 
 
@@ -99,3 +99,72 @@ def edit_profile_admin(id):
     form.location.data = user.location
     form.about_me.data = user.about_me
     return render_template('edit_profile.html', form=form, user=user )
+
+@main.route('/follow/<username>')
+@login_required
+@permission_required(Permission.FOLLOW)
+def follow(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        return redirect(url_for('.index'))
+    if current_user.is_following(user):
+        flash('You are already following this user.')
+        return redirect(url_for('.user', username=username))
+    current_user.follow(user)
+    flash('You are now following {}'.format(username))
+    return redirect(url_for('.user', username=username))
+
+@main.route('/unfollow/<username>')
+@login_required
+@permission_required(Permission.FOLLOW)
+def unfollow(username):
+    user = User.query.filter_by(username=username).first()
+    if user != current_user and current_user.is_following(user):
+        flash("You're now not following {}.".format(username))
+        current_user.unfollow(user)
+    return redirect(url_for('index'))
+
+@main.route('/followers/<username>')
+def followers(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        flash('Invalid user.')
+        return redirect(url_for('.index'))
+    page = request.args.get('page', 1, type=int)
+    pagination = user.followers.paginate(page, 
+        per_page=current_app.config['FOLLOWERS_PER_PAGE'],
+        error_out=False)
+    follows = [{'user': item.follower, 'timestamp': item.timestamp}
+               for item in pagination.items]
+
+    return render_template('followers.html', user=user, follows=follows, 
+        pagination=pagination, endpoint='.followers', title='Followers of')
+
+@main.route('/followed-by/<username>')
+def followed_by(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        flash('Invalid user.')
+        return redirect(url_for('.index'))
+    page = request.args.get('page', 1, type=int)
+    pagination = user.followed.paginate(page, 
+        per_page=current_app.config['FOLLOWERS_PER_PAGE'], 
+        error_out=False)
+    followers=[{'user': item.followed, 'timestamp': item.timestamp} for item in pagination.items]
+    return render_template('followers.html', user=user, follows=followers, 
+        pagination=pagination, endpoint='.followed_by')
+
+#is the cookie being written over? not 2nd cookie being set between followed + all routes?
+@main.route('/all')
+@login_required
+def show_all():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '', max_age=60*24*60*60)
+    return resp
+
+@main.route('/followed')
+@login_required
+def show_followed():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '1', max_age=60*24*60*60)
+

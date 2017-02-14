@@ -14,6 +14,7 @@ class Config:
     MAIL_SENDER = 'Hanny <fabienne.tango@gmail.com>'
     SONGBOOK_ADMIN = os.environ.get('SONGBOOK_ADMIN')
     SONGBOOK_POSTS_PER_PAGE = 20
+    FOLLOWERS_PER_PAGE = 30
 
     #BOOTSTRAP
     #Playing with unminified version for customization

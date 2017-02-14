@@ -29,7 +29,7 @@ class Role(db.Model):
     users = db.relationship('User', backref='role', lazy='dynamic')
 
     def __repr__(self):
-        return '<Role %r>' % self.name
+        return '|Role {}|'.format(self.name)
 
     @staticmethod
     def insert_roles():
@@ -55,6 +55,13 @@ class Role(db.Model):
             db.session.add(role)
         db.session.commit()
 
+# order of definition of association table?
+class Follow(db.Model):
+    __tablename__ = 'follows'
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -71,9 +78,19 @@ class User(UserMixin, db.Model):
     posts = db.relationship('Post', backref='author', lazy='dynamic')
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+    # this user follows 
+    followed = db.relationship('Follow', foreign_keys=[Follow.follower_id], 
+        backref=db.backref('follower', lazy=True), lazy='dynamic', 
+        cascade='all, delete-orphan')
+    # this user is followed by
+    followers = db.relationship('Follow', foreign_keys=[Follow.followed_id], 
+        backref=db.backref('followed', lazy='joined'), lazy='dynamic', 
+        cascade='all, delete-orphan')
+
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        #self.follow(self)
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash_maker()
         if self.role is None:
@@ -145,7 +162,7 @@ class User(UserMixin, db.Model):
         return True
 
     def __repr__(self):
-        return '<Role %r>' % self.username
+        return '{}, {}'.format(self.name, self.role)
 
     def generate_confirmation_token(self, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
@@ -176,6 +193,27 @@ class User(UserMixin, db.Model):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
 
+    def follow(self, user):
+        if not self.is_following(user):
+            f = Follow(follower=self, followed=user)
+            db.session.add(f)
+
+    def unfollow(self, user):
+        # followed = follower_id
+        f = self.followed.filter_by(followed_id=user_id).first()
+        if f:
+            db.session.delete(f)
+
+    def is_following(self, user):
+        return self.followed.filter_by(followed_id=user.id).first() is not None
+
+    def is_followed_by(self, user):
+        return self.followers.filter_by(follower_id=user.id).first() is not None
+
+    @property
+    def followed_posts():
+        return Post.query.join(Follow, Post.author_id == Follow.followed_id).filter(self.id == Follow.follower_id)
+
     @staticmethod
     def generate_fake(count=100):
         from sqlalchemy.exc import IntegrityError
@@ -188,11 +226,12 @@ class User(UserMixin, db.Model):
             username = forgery_py.name.first_name()
             u = User(email=forgery_py.internet.email_address(username),
                      username=username,
-                     password=forgery_py.lorem_ipsum.word(),
+                     password='test',
                      name=username + " " + forgery_py.name.last_name(),
                      location=forgery_py.address.city(),
                      about_me=forgery_py.lorem_ipsum.sentences(4),
                      member_since=forgery_py.date.date(past=True),
+                     confirmed=True
                      )
             db.session.add(u)
             try:
@@ -239,3 +278,6 @@ class Post(db.Model):
                      timestamp=forgery_py.date.date(True), author=u)
             db.session.add(p)
             db.session.commit()
+
+
+

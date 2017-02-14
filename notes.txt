@@ -8,3 +8,20 @@ current_user.confirmed
 others need () after 
 
 when I saved a template name with dashes instead of underscores separating words "request_passord_reset.html" vss "request-passsword-reset.html"  -- would not render
+
+order of definition of association object before/after model?
+
+views.py all, followed
+Each route sets a cookie with same key to different value - is the cookie being written over? not 2nd cookie being set between followed + all routes?
+
+To do over database:
+1. generate roles
+2. generate fake user info
+3. generate fake post info (from app.models import Post - or add to manage.py to automatically include in shell session)
+
+LAZY LOADING???? When I move 
+self.follow(self) to __init__, doesn't work anymore
+
+
+diane@zoombeat.biz
+test
