@@ -12,14 +12,21 @@
     <p>Glad to see you back</p>
     {% endif %}
 </div>
-
+<br>
 <div>
     {% if current_user.can(Permission.WRITE_ARTICLES) %}
         {{ wtf.quick_form(form) }}
     {% endif %}
 </div>
-<br>
-{% include '_posts.html' %}
+<div class="post-tabs">
+<ul class="nav nav-tabs">
+    <li {% if not show_followed %}class='active'{% endif %}>
+        <a href="{{ url_for('.show_all') }}">Show All</a>
+    </li>
+    <li {% if show_followed %}class='active'{% endif %}><a href="{{ url_for('.show_followed') }}">Following</a></li>
+</ul>
+    {% include '_posts.html' %}
+</div>
 
 {% if pagination %}
     <div class="pagination">
